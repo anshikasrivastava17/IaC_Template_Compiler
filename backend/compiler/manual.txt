@@ -1,0 +1,59 @@
+Arithmetic functions → Useful for auto-scaling rules in cloud infrastructure
+String functions → Helpful in resource naming conventions
+Random functions → Dynamic environment variable generation
+Math functions → Load balancing, cost calculations, etc.
+
+Rules Ensured for Consistency:
+Verbs First: (Find, Calculate, Generate, Convert)
+Prepositions for Clarity: (Of, Between, To)
+Quotes for Strings: ("hello", "Server-1")
+Brackets for Lists: ([10, 20, 30, 40])
+
+keywords.js
+left side (keys in the keywordMappings object) represents the standardized uppercase keywords
+right side (values) represents their corresponding function names in the system.
+
+Token Categories:
+Keyword: Uppercase reserved words from keywords.js
+Operator: +, -, *, /, %, =, etc.
+Constant: Numeric or boolean literals
+Identifier: Variable names, function names
+Special Character: (), {}, [], ,, ;, etc.
+Comment:
+    Single-line: ?!? ...
+    Multi-line: ?!?* ... *?!?
+Delimiter: Used for structure (like semicolons)
+
+
+How Does the Parser Detect Errors?
+Mismatched Arguments → Checks if correct number/type of arguments are given.
+Unexpected Tokens → Detects extra or missing symbols.
+Function Calls → Ensures correct function name usage.
+
+
+Checks for errors, including:
+Variable names using reserved keywords (like ADD, SUBTRACT).
+Missing semicolons (;).
+Incorrect expressions (e.g., int = 5 instead of int a = 5;)
+
+
+Invalid syntaxes
+ADD = 5;	Error: Invalid identifier 'ADD' (reserved keyword).
+RANGE = "test";	Error: Invalid identifier 'RANGE' (reserved keyword).
+int x = 5	Error: Missing semicolon (;) at end of statement.
+x = 10;	Error: Undeclared variable 'x'.
+int 5a = 10;	Error: Invalid variable name '5a'.
+bool flag = Yes;	Error: Invalid boolean value 'Yes'. Expected 'true' or 'false'.
+DIVIDE , 2;	Error: Invalid syntax in function call 'DIVIDE'. Expected: IDENTIFIER, CONSTANT.
+ROUND 5, 10;	Error: Too many arguments for function 'ROUND'. Expected: 1.
+MEAN 5 10 15;	Error: Missing comma between arguments.
+MAX(3, 5;	Error: Missing closing parenthesis ).
+float y = 3.14.2;	Error: Invalid float number '3.14.2'.
+CREATESTORAGE "disk1", "50GB"	Error: Missing semicolon (;).
+CHECKINSTANCESTATUS server1;	Error: Missing quotes for string parameter.
+LOG();	Error: Function 'LOG' requires an argument.
+int a = 5 +;	Error: Unexpected operator '+'. Expected constant or variable.
+VARIANCE [1,2,3	Error: Missing closing bracket ].
+UPLOADFILE file.txt	Error: Expected filename in double quotes.
+STOPINSTANCE;	Error: Missing instance name argument.
+ASSIGNIP 192.168.1.1;	Error: Missing double quotes around IP address.
