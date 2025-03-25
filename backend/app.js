@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const { tokenize } = require("./compiler/lexer");
 const { Parser, parseCode } = require("./compiler/parser");
 const { analyzeCode } = require("./compiler/semantic");
-
+const { executeAST } = require("./compiler/executor");
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
@@ -23,8 +23,6 @@ app.post("/tokenize", (req, res) => {
     }
 });
 
-
-// Keep the rest of your imports and setup...
 
 app.post("/parse", (req, res) => {
     const { code } = req.body;
@@ -69,6 +67,19 @@ app.post("/semantic", (req, res) => {
     }
 
     res.json({ message: result.message });
+});
+
+
+app.post("/execute", (req, res) => {
+    try {
+        const { code } = req.body;
+        if (!code) return res.status(400).json({ error: "No code provided" });
+
+        const result = executeAST(code); // ✅ Run AST execution
+        return res.json({ success: true, result });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
 });
 
 
