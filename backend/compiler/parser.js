@@ -6,11 +6,12 @@ class Parser {
         this.tokens = tokens;
         this.current = 0;
         this.errors = [];
+        this.ast = { type: "Program", body: [] };
     }
 
     error(message) {
         const token = this.peek();
-        const errorMsg = `Parsing Error at token '${token?.value || "EOF"}': ${message}`;
+        const errorMsg = `❌ Parsing Error at token '${token?.value || "EOF"}': ${message}`;
         console.error(errorMsg);
         this.errors.push(errorMsg);
     }
@@ -36,59 +37,50 @@ class Parser {
         return false;
     }
 
-    handleKeyword(token) {
+    parseArguments() {
         let args = [];
-        let nextToken = this.peek();
+    
+        while (!this.isAtEnd()) {
+            let nextToken = this.peek();
 
-        while (nextToken && nextToken.type !== "DELIMITER") {
-            if (nextToken.type === "IDENTIFIER" || nextToken.type === "CONSTANT") {
-                args.push(nextToken.value);
+            if (nextToken.type === "CONSTANT" || nextToken.type === "IDENTIFIER" || nextToken.type === "STRING") {
+                args.push({
+                    type: nextToken.type === "CONSTANT" ? "Number" : "String",
+                    value: nextToken.value
+                });
                 this.consume();
-            } else if (nextToken.value === ",") {
+            } 
+            else if (nextToken.value === ",") {
                 this.consume(); // Skip comma
-            } else {
-                this.error(`Unexpected token '${nextToken.value}' in function call '${token.value}'.`);
+                continue;
+            } 
+            else if (nextToken.type === "DELIMITER" && nextToken.value === ";") {
+                this.consume(); // Consume semicolon and break
+                break;
+            } 
+            else {
+                this.error(`Unexpected token '${nextToken.value}' in argument list.`);
                 this.consume();
             }
-            nextToken = this.peek();
         }
 
-        if (args.length === 0) {
-            this.error(`Expected at least one argument for '${token.value}'.`);
-        }
-
-        if (!this.match("DELIMITER")) {
-            this.error(`Missing ';' at the end of '${token.value}' statement.`);
-        }
-
-        console.log(`✅ Parsed function call: ${token.value}(${args.join(", ")})`);
+        return args;
     }
 
-    variableDeclaration() {
-        let nameToken = this.consume();
-    
-        if (!nameToken || nameToken.type !== "IDENTIFIER") {
-            this.error("Expected an identifier for variable declaration.");
+    handleKeyword(token) {
+        // Check if keyword is used in assignment (e.g., "add = 4;")
+        if (this.peek()?.value === "=") {
+            this.error(`Keyword '${token.value}' cannot be used as an identifier.`);
             return;
         }
-    
-        if (this.match("OPERATOR")) { // Checks if '=' is present
-            let valueToken = this.peek(); // Peek at the next token without consuming
-    
-            if (!valueToken || (valueToken.type !== "STRING" && valueToken.type !== "IDENTIFIER" && valueToken.type !== "CONSTANT")) {
-                this.error("Expected a value or identifier after '='.");
-            } else {
-                this.consume(); // Consume the valid value token
-            }
-        }
-    
-        if (!this.match("DELIMITER")) {  
-            this.error("Missing ';' at the end of the statement.");
-        }
-    
-        console.log(`✅ Parsed variable declaration: ${nameToken.value}`);
+
+        let args = this.parseArguments();
+        this.ast.body.push({
+            type: "FunctionCall",
+            name: token.value,
+            args: args
+        });
     }
-    
 
     parse() {
         console.log("📌 Starting parsing process...");
@@ -96,33 +88,16 @@ class Parser {
             let token = this.peek();
 
             if (token.type === "KEYWORD") {
-                console.log(`🔍 Found keyword: ${token.value}`);
-
-                if (this.peek(1)?.value === "=") {
-                    this.error(`Invalid use of keyword '${token.value}' as an identifier.`);
-
-                    while (!this.isAtEnd() && this.peek()?.value !== ";") {
-                        this.consume();
-                    }
-
-                    this.consume(); // Consume ';' if present
-                    continue;
-                }
-
-                this.consume(); // Consume the keyword
-                this.handleKeyword(token); // Handle function calls
+                this.consume();
+                this.handleKeyword(token);
             } 
-            
-            else if (token.type === "IDENTIFIER") {
-                this.variableDeclaration(); // Handle variable declaration
-            } 
-            
             else {
                 this.consume();
             }
         }
         console.log("✅ Parsing completed successfully.");
-        return this.errors;
+        console.log("🔹 Generated AST:", JSON.stringify(this.ast, null, 2));
+        return this.ast;
     }
 }
 
@@ -130,11 +105,7 @@ function parseCode(code) {
     const tokens = tokenize(code);
     console.log("🔹 Tokenized Output:", tokens);
     const parser = new Parser(tokens);
-    const errors = parser.parse();
-
-    if (errors.length > 0) {
-        throw new Error(errors.join("\n"));
-    }
+    return parser.parse();
 }
 
 module.exports = { parseCode };
