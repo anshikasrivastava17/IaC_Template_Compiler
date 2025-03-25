@@ -3,6 +3,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const { tokenize } = require("./compiler/lexer");
 const { parseCode } = require("./compiler/parser");
+const { analyzeCode } = require("./compiler/semantic");
 
 const app = express();
 app.use(cors());
@@ -31,6 +32,22 @@ app.post("/parse", (req, res) => {
     } catch (error) {
         res.json({ success: false, errors: error.message.split("\n") });
     }
+});
+
+
+app.post("/semantic", (req, res) => {
+    const { code } = req.body;
+    if (!code) {
+        return res.status(400).json({ error: "Code is required" });
+    }
+    
+    const result = analyzeCode(code);
+
+    if (!result.success) {
+        return res.status(400).json({ errors: result.errors }); 
+    }
+
+    res.json({ message: result.message });
 });
 
 

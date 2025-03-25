@@ -1,52 +1,50 @@
+const { parseCode } = require("./parser");
 const { functions } = require("./functions");
 
-function analyzeSemantics(ast) {
-    console.log("🔎 Starting semantic analysis...");
+function checkSemantics(ast) {
     let errors = [];
 
-    ast.forEach(node => {
+    ast.body.forEach(node => {
         if (node.type === "FunctionCall") {
-            // Check if the function is defined
-            if (!functions[node.name]) {
-                errors.push(`Semantic Error: Function '${node.name}' is not defined.`);
+            const funcName = node.name;
+            const args = node.args;
+
+            if (!functions[funcName]) {
+                errors.push(`❌ Semantic Error: Function '${funcName}' is not defined.`);
                 return;
             }
 
-            let expectedParams = functions[node.name].params;
-            if (node.arguments.length !== expectedParams.length) {
-                errors.push(`Semantic Error: Function '${node.name}' expects ${expectedParams.length} arguments, but got ${node.arguments.length}.`);
+            const expectedParams = functions[funcName].params;
+            
+            if (args.length !== expectedParams.length) {
+                errors.push(`❌ Semantic Error: Function '${funcName}' expects ${expectedParams.length} arguments, but got ${args.length}.`);
             }
 
-            // Ensure argument types match the expected types
-            node.arguments.forEach((arg, idx) => {
-                let expectedType = expectedParams[idx];
-                if (!isValidType(arg, expectedType)) {
-                    errors.push(`Semantic Error: Argument '${arg}' at position ${idx + 1} in function '${node.name}' is of invalid type. Expected ${expectedType}.`);
+            args.forEach((arg, index) => {
+                const expectedType = expectedParams[index];
+                if (expectedType === "number" && isNaN(Number(arg.value))) {
+                    errors.push(`❌ Semantic Error: Argument ${index + 1} of '${funcName}' should be a number.`);
+                } else if (expectedType === "string" && typeof arg.value !== "string") {
+                    errors.push(`❌ Semantic Error: Argument ${index + 1} of '${funcName}' should be a string.`);
+                } else if (expectedType === "array" && !Array.isArray(arg.value)) {
+                    errors.push(`❌ Semantic Error: Argument ${index + 1} of '${funcName}' should be an array.`);
                 }
             });
         }
     });
 
+    return errors;
+}
+
+function analyzeCode(code) {
+    const ast = parseCode(code);
+    const errors = checkSemantics(ast);
+
     if (errors.length > 0) {
-        console.error("❌ Semantic Errors:", errors.join("\n"));
-        throw new Error(errors.join("\n"));
+        return { success: false, errors }; 
     }
 
-    console.log("✅ Semantic analysis completed successfully.");
+    return { success: true, message: "Semantic analysis completed successfully." };
 }
 
-function isValidType(value, expectedType) {
-    // Check if the value matches the expected type
-    switch (expectedType) {
-        case "string":
-            return typeof value === "string";
-        case "identifier":
-            return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value);
-        case "constant":
-            return /^[0-9]+(\.[0-9]+)?$/.test(value); // Simple number regex check
-        default:
-            return false;
-    }
-}
-
-module.exports = { analyzeSemantics };
+module.exports = { analyzeCode };

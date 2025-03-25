@@ -9,6 +9,7 @@ function App() {
   const [code, setCode] = useState("");
   const [tokens, setTokens] = useState([]);
   const [parserOutput, setParserOutput] = useState("");
+  const [semanticOutput, setSemanticOutput] = useState("");
   const [error, setError] = useState(null); // Store API errors
 
   const handleRun = async () => {
@@ -45,6 +46,16 @@ function App() {
       } else {
         setParserOutput(parseData.result || "Parsing completed successfully.");
       }
+
+
+      const semanticResponse = await fetch("http://localhost:3000/semantic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+  
+      const semanticData = await semanticResponse.json();
+      setSemanticOutput(semanticData.errors?.join("\n") || "Semantic analysis passed.");
   
       // ✅ Switch to Debug tab
       setActiveTab("debug");
@@ -67,10 +78,10 @@ function App() {
 
       {/* Render Components Based on Active Tab */}
       {activeTab === "editor" && (
-        <Editor code={code} setCode={setCode} handleRun={handleRun} />
+        <Editor code={code} setCode={setCode} handleRun={handleRun}  />
       )}
       {activeTab === "debug" && (
-        <Debug tokens={tokens} parserOutput={parserOutput} />
+        <Debug tokens={tokens} parserOutput={parserOutput} semanticOutput={semanticOutput} />
       )}
       {activeTab === "manual" && <UserManual />}
     </div>
