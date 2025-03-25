@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const { tokenize } = require("./compiler/lexer");
-const { parseCode } = require("./compiler/parser");
+const { Parser, parseCode } = require("./compiler/parser");
 const { analyzeCode } = require("./compiler/semantic");
 
 const app = express();
@@ -24,13 +24,34 @@ app.post("/tokenize", (req, res) => {
 });
 
 
+// Keep the rest of your imports and setup...
+
 app.post("/parse", (req, res) => {
-    const { code } = req.body;  // Get user input from frontend
+    const { code } = req.body;
     try {
-        parseCode(code);  // Run the parser
-        res.json({ success: true, message: "Code parsed successfully." });
+        const tokens = tokenize(code);
+        const parser = new Parser(tokens);
+        const ast = parser.parse();
+        
+        // Return both AST and errors (if any)
+        res.json({ 
+            success: parser.errors.length === 0,
+            ast: ast, // Keep the AST in response
+            errors: parser.errors,
+            result: parser.errors.length > 0 
+                ? "Parsing completed with errors" 
+                : "Parsing completed successfully",
+            consoleOutput: [
+                `🔹 Tokenized Output: ${JSON.stringify(tokens, null, 2)}`,
+                `🔹 Generated AST: ${JSON.stringify(ast, null, 2)}`
+            ]
+        });
     } catch (error) {
-        res.json({ success: false, errors: error.message.split("\n") });
+        res.status(500).json({ 
+            success: false,
+            errors: [error.message],
+            result: "Parsing failed"
+        });
     }
 });
 

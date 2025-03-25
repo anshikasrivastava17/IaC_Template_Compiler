@@ -1,5 +1,4 @@
 const { tokenize } = require("./lexer");
-const { keywordMappings, getKeyword } = require("./keywords");
 
 class Parser {
     constructor(tokens) {
@@ -39,10 +38,9 @@ class Parser {
 
     parseArguments() {
         let args = [];
-    
         while (!this.isAtEnd()) {
             let nextToken = this.peek();
-
+            
             if (nextToken.type === "CONSTANT" || nextToken.type === "IDENTIFIER" || nextToken.type === "STRING") {
                 args.push({
                     type: nextToken.type === "CONSTANT" ? "Number" : "String",
@@ -50,31 +48,36 @@ class Parser {
                 });
                 this.consume();
             } 
+            else if (nextToken.type === "ARRAY_LITERAL") {  // ✅ Handling Array Literal
+                args.push({
+                    type: "Array",
+                    value: nextToken.value
+                });
+                this.consume();
+            } 
             else if (nextToken.value === ",") {
                 this.consume(); // Skip comma
-                continue;
-            } 
-            else if (nextToken.type === "DELIMITER" && nextToken.value === ";") {
-                this.consume(); // Consume semicolon and break
-                break;
             } 
             else {
-                this.error(`Unexpected token '${nextToken.value}' in argument list.`);
-                this.consume();
+                break; // Stop at any non-argument token (including semicolons)
             }
         }
-
         return args;
     }
 
     handleKeyword(token) {
-        // Check if keyword is used in assignment (e.g., "add = 4;")
         if (this.peek()?.value === "=") {
-            this.error(`Keyword '${token.value}' cannot be used as an identifier.`);
+            this.error(`Keyword '${token.value}' cannot be used as an identifier`);
             return;
         }
 
-        let args = this.parseArguments();
+        const args = this.parseArguments(); // Parse function arguments
+
+        // ✅ Ensure semicolon is expected at the end, not after function name
+        if (!this.match("DELIMITER") || this.peek(-1)?.value !== ";") {
+            this.error(`Expected semicolon at the end of '${token.value}' statement`);
+        }
+
         this.ast.body.push({
             type: "FunctionCall",
             name: token.value,
@@ -108,4 +111,7 @@ function parseCode(code) {
     return parser.parse();
 }
 
-module.exports = { parseCode };
+module.exports = { 
+    parseCode,
+    Parser 
+};

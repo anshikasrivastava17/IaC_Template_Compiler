@@ -27,7 +27,7 @@ const functions = {
     randomNum: { params: ["number", "number"] },
     randomInt: { params: ["number", "number"] },
     max: { params: ["array"] },
-    min: { params: ["array"] },
+    min: { params: ["array"] }, 
     count: { params: ["array"] },
     range: { params: ["array"] },
     uppercase: { params: ["string"] },

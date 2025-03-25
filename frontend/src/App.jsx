@@ -14,57 +14,60 @@ function App() {
 
   const handleRun = async () => {
     try {
-      setError(null); // Reset previous errors
-  
-      // ✅ Tokenize Code
-      const tokenResponse = await fetch("http://localhost:3000/tokenize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-  
-      if (!tokenResponse.ok) {
-        throw new Error(`Tokenization failed: ${tokenResponse.statusText}`);
-      }
-  
-      const tokenData = await tokenResponse.json();
-      setTokens(tokenData.tokens || []);
-  
-      // ✅ Parse Code
-      const parseResponse = await fetch("http://localhost:3000/parse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-  
-      const parseData = await parseResponse.json();
-  
-      // ✅ Check if the response contains errors
-      if (parseData.errors && parseData.errors.length > 0) {
-        const errorMessages = parseData.errors.join("\n"); // Format errors properly
-        setParserOutput(errorMessages); // Display errors in UI
-      } else {
-        setParserOutput(parseData.result || "Parsing completed successfully.");
-      }
+        setError(null);
+        setTokens([]);
+        setParserOutput("");
+        setSemanticOutput("");
+        
+        // Tokenize
+        const tokenResponse = await fetch("http://localhost:3000/tokenize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code }),
+        });
+        const tokenData = await tokenResponse.json();
+        setTokens(tokenData.tokens || []);
 
+        // Parse
+        const parseResponse = await fetch("http://localhost:3000/parse", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code }),
+        });
+        const parseData = await parseResponse.json();
+        
+        // Update parser output with errors or success message
+        setParserOutput(
+            parseData.errors?.join("\n") || 
+            parseData.result || 
+            "Parsing completed successfully.\n" +
+            (parseData.consoleOutput?.join("\n") || "")
+        );
 
-      const semanticResponse = await fetch("http://localhost:3000/semantic", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-  
-      const semanticData = await semanticResponse.json();
-      setSemanticOutput(semanticData.errors?.join("\n") || "Semantic analysis passed.");
-  
-      // ✅ Switch to Debug tab
-      setActiveTab("debug");
+        // Only do semantic analysis if parsing succeeded
+        if (parseData.success) {
+            const semanticResponse = await fetch("http://localhost:3000/semantic", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code }),
+            });
+            const semanticData = await semanticResponse.json();
+            setSemanticOutput(
+                semanticData.errors?.join("\n") || 
+                "Semantic analysis passed."
+            );
+        } else {
+            setSemanticOutput("Skipped semantic analysis due to parser errors");
+        }
+
+        setActiveTab("debug");
     } catch (err) {
-      console.error("Error running code:", err);
-      setParserOutput(`Error: ${err.message}`); // Show error in Debug tab
-      setActiveTab("debug");
+        console.error("Error running code:", err);
+        setParserOutput(`Error: ${err.message}`);
+        setSemanticOutput("Analysis failed");
+        setActiveTab("debug");
     }
-  };
+};
   
 
   return (
