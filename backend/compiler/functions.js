@@ -24,8 +24,8 @@ const functions = {
     // Utility Functions
     toRadians: { params: ["number"], execute: (a) => (a * Math.PI) / 180 },
     toDegrees: { params: ["number"], execute: (a) => (a * 180) / Math.PI },
-    randomNum: { params: ["number", "number"], execute: (min, max) => Math.random() * (max - min) + min },
-    randomInt: { params: ["number", "number"], execute: (min, max) => Math.floor(Math.random() * (max - min + 1) + min) },
+    randomNumber: { params: ["number", "number"], execute: (min, max) => Math.random() * (max - min) + min },
+    randomInteger: { params: ["number", "number"], execute: (min, max) => Math.floor(Math.random() * (max - min + 1) + min) },
 
     // Array-based Functions
     max: { params: ["array"], execute: (arr) => Math.max(...arr) },

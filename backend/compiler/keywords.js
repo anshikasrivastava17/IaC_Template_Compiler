@@ -24,8 +24,8 @@ const keywordMappings = {
     // Utility Functions
     "TORADIANS": "toRadians",
     "TODEGREES": "toDegrees",
-    "RANDOMNUMBER": "randomNum",
-    "RANDOMINTEGER": "randomInt",
+    "RANDOMNUMBER": "randomNumber",
+    "RANDOMINTEGER": "randomInteger",
     "MAX": "max",
     "MIN": "min",
     "COUNT": "count",
