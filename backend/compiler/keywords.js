@@ -14,7 +14,7 @@ const keywordMappings = {
     "ROUND": "round",
     "CEIL": "ceil",
     "FLOOR": "floor",
-    "ABSOLUTE": "abs",
+    "ABSOLUTE": "absolute",
 
     // Trigonometric Functions
     "SINE": "sine",

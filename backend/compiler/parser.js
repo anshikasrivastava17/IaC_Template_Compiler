@@ -40,8 +40,17 @@ class Parser {
         let args = [];
         while (!this.isAtEnd()) {
             let nextToken = this.peek();
+
+            if (nextToken.value === "-" && this.peek(1)?.type === "CONSTANT") {
+                this.consume(); // Consume '-'
+                let numberToken = this.consume(); // Consume number after '-'
+                args.push({
+                    type: "Number",
+                    value: `-${numberToken.value}` // Store as negative number
+                });
+            }
             
-            if (nextToken.type === "CONSTANT" || nextToken.type === "IDENTIFIER" || nextToken.type === "STRING") {
+            else if (nextToken.type === "CONSTANT" || nextToken.type === "IDENTIFIER" || nextToken.type === "STRING") {
                 args.push({
                     type: nextToken.type === "CONSTANT" ? "Number" : "String",
                     value: nextToken.value

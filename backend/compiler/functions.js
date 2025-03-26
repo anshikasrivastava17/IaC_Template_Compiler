@@ -14,7 +14,7 @@ const functions = {
     round: { params: ["number", "number"], execute: (a, b) => parseFloat(a.toFixed(b)) },
     ceil: { params: ["number"], execute: (a) => Math.ceil(a) },
     floor: { params: ["number"], execute: (a) => Math.floor(a) },
-    abs: { params: ["number"], execute: (a) => Math.abs(a) },
+    absolute: { params: ["number"], execute: (a) => Math.abs(a) },
 
     // Trigonometric Functions
     sine: { params: ["number"], execute: (a) => Math.sin(a) },

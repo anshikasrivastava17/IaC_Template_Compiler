@@ -39,8 +39,14 @@ function executeAST(code) {
 function processASTArgument(arg) {
     if (arg.type === "Number") return Number(arg.value);
     if (arg.type === "String") return arg.value;
-    if (arg.type === "Array") return JSON.parse(arg.value.replace(/\s+/g, ",")); // Convert array-like strings to actual arrays
+    if (arg.type === "Array") {
+        // Convert space-separated array to an actual array
+        return arg.value.replace(/\[|\]/g, "").trim() // Remove square brackets
+                        .split(/\s+/)  // Split by spaces
+                        .map(Number);  // Convert to numbers
+    }
     throw new Error(`Unsupported AST argument type: ${arg.type}`);
 }
+
 
 module.exports = { executeAST };

@@ -33,6 +33,8 @@ function tokenize(code) {
     line = line.trim();
     if (!line) continue;
 
+    console.log(`Processing line: "${line}"`);
+
     if (inMultilineComment) {
       tokens.push({ type: tokenTypes.COMMENT, value: line });
       if (/^.*\*?!?$/.test(line)) inMultilineComment = false;
@@ -55,12 +57,16 @@ function tokenize(code) {
     
     for (let i = 0; i < words.length; i++) {
       let word = words[i];
+
+      console.log(`Checking word: "${word}"`);
+
       
       if (insideArray) {
         buffer += " " + word;
         if (word.endsWith("]")) {
           insideArray = false;
           tokens.push({ type: tokenTypes.ARRAY_LITERAL, value: buffer.trim() });
+          console.log(`Detected negative number: "${word + words[i + 1]}"`);
         }
         continue;
       }
@@ -74,7 +80,11 @@ function tokenize(code) {
         continue;
       }
       
-      if (keywordMappings.hasOwnProperty(getKeyword(word))) {
+      if (word.startsWith("-") && patterns.number.test(word.slice(1))) {
+        tokens.push({ type: tokenTypes.CONSTANT, value: word });
+        console.log(`Detected negative number: "${word}"`);
+      } 
+      else if (keywordMappings.hasOwnProperty(getKeyword(word))) {
         tokens.push({ type: tokenTypes.KEYWORD, value: word });
       } else if (operators.includes(word)) {
         tokens.push({ type: tokenTypes.OPERATOR, value: word });
@@ -91,7 +101,6 @@ function tokenize(code) {
       }
     }
   }
-
   return tokens;
 }
 
