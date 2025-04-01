@@ -271,48 +271,271 @@ const awsFunctions = {
 
     
 
-    
+
     /**
      * Storage Management Functions
      */
-    createBucket: { 
-        params: ["string", "string"], 
-        execute: async (bucketName, region = 'us-east-1') => {
+    createStorage: {
+    params: ["string", "number"], // volumeType, sizeGB
+    execute: async (volumeType, sizeGB) => {
+        try {
             const params = {
-                Bucket: bucketName,
+                VolumeType: volumeType.replace(/"/g, ''),
+                Size: parseInt(sizeGB),
+                AvailabilityZone: 'eu-north-1a', // Should be configurable
+                TagSpecifications: [{
+                    ResourceType: 'volume',
+                    Tags: [{ Key: 'Name', Value: 'CreatedByIaC' }]
+                }]
+            };
+            
+            const data = await ec2.createVolume(params).promise();
+            return {
+                success: true,
+                volumeId: data.VolumeId,
+                state: data.State,
+                sizeGB: data.Size,
+                volumeType: data.VolumeType,
+                availabilityZone: data.AvailabilityZone
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                code: error.code
+            };
+        }
+    }
+},
+
+    attachStorage: {
+    params: ["string", "string"], // volumeId, instanceId
+    execute: async (volumeId, instanceId) => {
+        try {
+            const params = {
+                Device: '/dev/sdf',
+                InstanceId: instanceId.replace(/"/g, ''),
+                VolumeId: volumeId.replace(/"/g, '')
+            };
+            
+            const data = await ec2.attachVolume(params).promise();
+            return {
+                success: true,
+                attachmentState: data.State,
+                volumeId: data.VolumeId,
+                instanceId: data.InstanceId,
+                device: data.Device
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                code: error.code
+            };
+        }
+    }
+},
+
+    detachStorage: {
+    params: ["string", "string"], // volumeId, instanceId
+    execute: async (volumeId, instanceId) => {
+        try {
+            const params = {
+                InstanceId: instanceId.replace(/"/g, ''),
+                VolumeId: volumeId.replace(/"/g, '')
+            };
+            
+            const data = await ec2.detachVolume(params).promise();
+            return {
+                success: true,
+                detachmentState: data.State,
+                volumeId: data.VolumeId,
+                instanceId: data.InstanceId
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                code: error.code
+            };
+        }
+    }
+},
+
+createBucket: {
+    params: ["string", "string"], // bucketName, region
+    execute: async (bucketName, region) => {
+        try {
+            const cleanName = bucketName.replace(/"/g, '');
+            const params = {
+                Bucket: cleanName,
                 CreateBucketConfiguration: {
-                    LocationConstraint: region
+                    LocationConstraint: region.replace(/"/g, '')
                 }
             };
             
-            try {
-                const data = await s3.createBucket(params).promise();
-                return {
-                    bucketName,
-                    location: data.Location,
-                    message: `Bucket ${bucketName} created in ${region}`
-                };
-            } catch (err) {
-                throw new Error(`AWS Error: ${err.message}`);
-            }
+            await s3.createBucket(params).promise();
+            return {
+                success: true,
+                bucketName: cleanName,
+                region: region,
+                arn: `arn:aws:s3:::${cleanName}`
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                code: error.code
+            };
         }
-    },
+    }
+},
 
-    listBuckets: {
-        params: [],
-        execute: async () => {
-            try {
-                const data = await s3.listBuckets().promise();
-                return {
-                    buckets: data.Buckets,
-                    count: data.Buckets.length,
-                    message: `Found ${data.Buckets.length} buckets`
-                };
-            } catch (err) {
-                throw new Error(`AWS Error: ${err.message}`);
-            }
+deleteBucket: {
+    params: ["string"], // bucketName
+    execute: async (bucketName) => {
+        try {
+            const cleanName = bucketName.replace(/"/g, '');
+            await s3.deleteBucket({ Bucket: cleanName }).promise();
+            return {
+                success: true,
+                bucketName: cleanName,
+                message: 'Bucket deleted successfully'
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                code: error.code
+            };
         }
-    },
+    }
+},
+
+deleteStorage: {
+    params: ["string"],
+    execute: async (volumeId) => {
+        console.log("[deleteStorage] Execution started with volumeId:", volumeId); // 1st debug point
+        
+        try {
+            // 1. Input validation with extreme checks
+            if (volumeId === undefined) {
+                throw new Error("UNDEFINED_INPUT: No volumeId provided");
+            }
+            
+            const cleanId = String(volumeId).replace(/"/g, '').trim();
+            console.log("[deleteStorage] Cleaned volumeId:", cleanId); // 2nd debug point
+
+            if (!/^vol-[a-z0-9]{17}$/.test(cleanId)) {
+                throw new Error(`INVALID_ID_FORMAT: ${cleanId} (Expected vol-xxxxxxxxxxxxxxxxx)`);
+            }
+
+            // 2. Pre-deletion verification
+            console.log("[deleteStorage] Checking volume state..."); // 3rd debug point
+            const describeParams = { VolumeIds: [cleanId] };
+            
+            let volumeData;
+            try {
+                volumeData = await ec2.describeVolumes(describeParams).promise();
+                console.log("[deleteStorage] Volume description response:", JSON.stringify(volumeData, null, 2)); // 4th debug point
+            } catch (describeError) {
+                console.error("[deleteStorage] DescribeVolumes FAILED:", {
+                    error: describeError.message,
+                    code: describeError.code,
+                    stack: describeError.stack
+                });
+                throw describeError;
+            }
+
+            if (!volumeData.Volumes || volumeData.Volumes.length === 0) {
+                throw new Error("VOLUME_NOT_FOUND: No volume exists with this ID");
+            }
+
+            const volume = volumeData.Volumes[0];
+            console.log("[deleteStorage] Current volume state:", volume.State); // 5th debug point
+
+            if (volume.State !== 'available') {
+                throw new Error(`VOLUME_IN_USE: Volume state is ${volume.State}. Must be 'available'`);
+            }
+
+            // 3. Execute deletion
+            console.log("[deleteStorage] Attempting deletion..."); // 6th debug point
+            const deleteResponse = await ec2.deleteVolume({ VolumeId: cleanId }).promise();
+            console.log("[deleteStorage] DeleteVolume API response:", deleteResponse); // 7th debug point
+
+            // 4. Return standardized success response
+            const result = {
+                success: true,
+                volumeId: cleanId,
+                state: "deleting",
+                sizeGB: volume.Size,
+                volumeType: volume.VolumeType,
+                availabilityZone: volume.AvailabilityZone,
+                message: "Deletion command accepted by AWS",
+                timestamp: new Date().toISOString()
+            };
+            
+            console.log("[deleteStorage] Returning success:", result); // 8th debug point
+            return result;
+
+        } catch (error) {
+            // 5. Detailed error handling
+            const errorDetails = {
+                name: error.name,
+                message: error.message,
+                code: error.code || "CUSTOM_ERROR",
+                stack: error.stack,
+                awsStatusCode: error.statusCode,
+                retryable: error.retryable,
+                time: new Date().toISOString(),
+                inputVolumeId: volumeId
+            };
+            
+            console.error("[deleteStorage] CRITICAL ERROR:", errorDetails); // 9th debug point
+            
+            return {
+                success: false,
+                error: error.message,
+                code: error.code || "DeleteVolumeFailed",
+                details: {
+                    type: error.name,
+                    validation: /INVALID|UNDEFINED/.test(error.code) ? "input" : "aws",
+                    timestamp: errorDetails.time
+                },
+                debug: process.env.NODE_ENV === "development" ? errorDetails : undefined
+            };
+        }
+    }
+},
+
+listFiles: {
+    params: ["string"], // bucketName
+    execute: async (bucketName) => {
+        try {
+            const params = {
+                Bucket: bucketName.replace(/"/g, '')
+            };
+            
+            const data = await s3.listObjectsV2(params).promise();
+            return {
+                success: true,
+                bucketName: bucketName,
+                fileCount: data.KeyCount,
+                files: data.Contents.map(file => ({
+                    key: file.Key,
+                    size: file.Size,
+                    lastModified: file.LastModified
+                }))
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                code: error.code
+            };
+        }
+    }
+},
 
     /**
      * Networking Functions

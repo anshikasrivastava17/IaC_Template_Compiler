@@ -73,13 +73,13 @@ const functions = {
     checkInstanceStatus: { params: ["string"] }, // [instanceId]
 
     // Storage Management
-    createStorage: { params: ["string", "number"] },
-    attachStorage: { params: ["string", "string"] },
-    detachStorage: { params: ["string", "string"] },
-    createBucket: { params: ["string", "string"] },
-    deleteBucket: { params: ["string"] },
-    uploadFile: { params: ["string", "string", "string"] },
-    listFiles: { params: ["string"] },
+    createStorage: { params: ["string", "number"] },  // volumeType, sizeGB
+    attachStorage: { params: ["string", "string"] },  // volumeId, instanceId
+    detachStorage: { params: ["string", "string"] },  // volumeId, instanceId
+    createBucket: { params: ["string", "string"] },  // bucketName, region
+    deleteBucket: { params: ["string"] },  // bucketName
+    deleteStorage: { params: ["string"] }, // volumeType
+    listFiles: { params: ["string"] }, // bucketName
 
     // Networking
     createNetwork: { params: ["string", "string"] },

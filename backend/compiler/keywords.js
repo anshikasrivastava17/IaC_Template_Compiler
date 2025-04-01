@@ -55,7 +55,7 @@ const keywordMappings = {
     "DETACHSTORAGE": "detachStorage",
     "CREATEBUCKET": "createBucket",
     "DELETEBUCKET": "deleteBucket",
-    "UPLOADFILE": "uploadFile",
+    "DELETESTORAGE": "deleteStorage",
     "LISTFILES": "listFiles",
 
     // Networking
