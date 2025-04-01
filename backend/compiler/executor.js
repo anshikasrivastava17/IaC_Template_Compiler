@@ -1,8 +1,10 @@
 const { parseCode } = require("./parser"); // Import AST generator
 const { functions } = require("./functions"); // Import function implementations
+const { awsFunctions } = require("./infra");
+const allFunctions = { ...functions, ...awsFunctions };
 
 // Function to execute AST dynamically
-function executeAST(code) {
+async function executeAST(code) {
     // ✅ Generate AST from user-provided code
     const ast = parseCode(code);
     console.log("\n🔹 Generated AST:", JSON.stringify(ast, null, 2));
@@ -17,7 +19,7 @@ function executeAST(code) {
         if (statement.type === "FunctionCall") {
             const functionName = statement.name;
 
-            if (!functions[functionName]) {
+            if (!allFunctions[functionName]) {
                 throw new Error(`Unknown function: ${functionName}`);
             }
 
@@ -25,10 +27,21 @@ function executeAST(code) {
             const rawArgs = statement.args.map(arg => processASTArgument(arg));
 
             // Retrieve and execute the function
-            const func = functions[functionName].execute;
-            const result = func(...rawArgs);
-
-            results.push({ function: functionName, result });
+            const func = allFunctions[functionName].execute;
+            try {
+                // Handle both sync and async functions
+                const result = func.constructor.name === 'AsyncFunction' 
+                    ? await func(...rawArgs) 
+                    : func(...rawArgs);
+                
+                results.push({ function: functionName, result });
+            } catch (err) {
+                results.push({ 
+                    function: functionName, 
+                    error: err.message,
+                    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+                });
+            }
         }
     }
 

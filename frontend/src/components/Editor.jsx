@@ -8,6 +8,8 @@ const Editor = ({ code, setCode }) => {
   // State for editor functionality
   const [output, setOutput] = useState([]);
   const [errors, setErrors] = useState([]);
+  const [isLongRunning, setIsLongRunning] = useState(false);
+  const [executionStartTime, setExecutionStartTime] = useState(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [copiedOutput, setCopiedOutput] = useState(false);
 
@@ -83,9 +85,10 @@ const Editor = ({ code, setCode }) => {
     if (isExecuting) return;
 
     try {
-      setIsExecuting(true);
-      setErrors([]);
-      setOutput([]);
+    setIsExecuting(true);
+    setExecutionStartTime(Date.now()); // Track start time
+    setErrors([]);
+    setOutput([]);
 
       // Simulated API calls for demonstration
       const parseResponse = await fetch("http://localhost:3000/parse", {
@@ -119,17 +122,22 @@ const Editor = ({ code, setCode }) => {
       });
       const executeData = await executeResponse.json();
 
-      const resultOutput = Array.isArray(executeData.result)
-        ? executeData.result
-        : [{ function: "Error", result: executeData.error || "Execution failed" }];
+      if (Date.now() - executionStartTime > 2000) {
+        setIsLongRunning(true);
+      }
+  
+      const results = executeData.result || executeData;
+    setOutput(Array.isArray(results) ? results : [{
+      function: "Execution Result",
+      result: JSON.stringify(results, null, 2)
+    }]);
 
-      setOutput(resultOutput);
-    } catch (error) {
-      setErrors(["Error executing function"]);
-    } finally {
-      setIsExecuting(false);
-    }
-  };
+  } catch (error) {
+    setErrors([error.message]);
+  } finally {
+    setIsExecuting(false);
+  }
+};
 
   return (
     <div className={`flex h-screen ${themeClasses.background} p-4`}>
@@ -297,49 +305,69 @@ const Editor = ({ code, setCode }) => {
 
             {/* Output Content */}
             <div className="flex-1 overflow-y-auto p-2">
-              {errors.length > 0 ? (
-                <div className="text-red-400 space-y-2">
-                  {errors.map((error, index) => (
-                    <div key={index} className="flex items-center space-x-2 text-sm">
-                      <AlertTriangle size={16} />
-                      <span>{error}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : output.length > 0 ? (
-                <div className="space-y-3">
-                  {output.map((item, index) => (
-                    <div 
-                      key={index} 
-                      className={`
-                        p-2 rounded-lg text-sm
-                        ${item.result === "Error" 
-                          ? "bg-red-500/10 text-red-400" 
-                          : "bg-green-500/10 text-green-400"
-                        }
-                      `}
-                    >
-                      <div className="flex justify-between mb-1">
-                        <span className="font-semibold">{item.function}</span>
-                        <span className="text-xs opacity-70">
-                          {item.result === "Error" ? "Failed" : "Success"}
-                        </span>
-                      </div>
-                      <pre className="text-xs whitespace-pre-wrap break-words">
-                        {item.result}
-                      </pre>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-full flex items-center justify-center text-gray-500 text-center">
-                  <div>
-                    <Terminal size={32} className="mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Execute your code to see output</p>
-                  </div>
-                </div>
-              )}
+  {errors.length > 0 ? (
+    <div className="text-red-400 space-y-2">
+      {errors.map((error, index) => (
+        <div key={index} className="flex items-center space-x-2 text-sm">
+          <AlertTriangle size={16} />
+          <span>{error}</span>
+        </div>
+      ))}
+    </div>
+  ) : output.length > 0 ? (
+    <div className="space-y-3">
+      {output.map((item, index) => {
+        // Safely determine if result is an error
+        const isError = item.result?.status === 'error' || 
+                       item.result === 'Error' || 
+                       item.status === 'failed';
+        
+        return (
+          <div 
+            key={index} 
+            className={`
+              p-2 rounded-lg text-sm
+              ${isError
+                ? 'bg-red-900/20 text-red-400'
+                : 'bg-green-900/10 text-green-400'
+              }
+            `}
+          >
+            <div className="flex justify-between mb-1">
+              <span className="font-semibold">
+                {item.function || 'Execution Result'}
+              </span>
+              <span className="text-xs opacity-70">
+                {isError ? 'Failed' : 'Success'}
+              </span>
             </div>
+            <pre className="text-xs whitespace-pre-wrap break-words">
+              {(() => {
+                try {
+                  if (item.result === undefined) return 'undefined';
+                  if (item.result === null) return 'null';
+                  if (typeof item.result === 'string') return item.result;
+                  if (typeof item.result === 'number') return item.result.toString();
+                  if (typeof item.result === 'boolean') return item.result.toString();
+                  return JSON.stringify(item.result, null, 2);
+                } catch (e) {
+                  return 'Could not display output';
+                }
+              })()}
+            </pre>
+          </div>
+        );
+      })}
+    </div>
+  ) : (
+    <div className="h-full flex items-center justify-center text-gray-500 text-center">
+      <div>
+        <Terminal size={32} className="mx-auto mb-2 opacity-50" />
+        <p className="text-sm">Execute your code to see output</p>
+      </div>
+    </div>
+  )}
+</div>
           </div>
         </div>
       </div>

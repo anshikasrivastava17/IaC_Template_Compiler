@@ -70,12 +70,12 @@ app.post("/semantic", (req, res) => {
 });
 
 
-app.post("/execute", (req, res) => {
+app.post("/execute", async(req, res) => {
     try {
         const { code } = req.body;
         if (!code) return res.status(400).json({ error: "No code provided" });
 
-        const result = executeAST(code); // ✅ Run AST execution
+        const result = await executeAST(code); // ✅ Run AST execution
         return res.json({ success: true, result });
     } catch (error) {
         return res.status(500).json({ error: error.message });

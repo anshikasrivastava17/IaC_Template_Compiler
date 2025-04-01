@@ -17,7 +17,7 @@ function App() {
   const [parserOutput, setParserOutput] = useState("");
   const [semanticOutput, setSemanticOutput] = useState("");
   const [error, setError] = useState(null);
-
+  
   const handleRun = async () => {
     try {
       setError(null);

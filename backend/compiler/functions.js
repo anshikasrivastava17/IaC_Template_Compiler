@@ -64,13 +64,13 @@ const functions = {
 
 
     // Compute Management
-    createInstance: { params: ["string", "string"] },
-    startInstance: { params: ["string"] },
-    stopInstance: { params: ["string"] },
-    terminateInstance: { params: ["string"] },
-    resizeInstance: { params: ["string", "string"] },
+    createInstance: { params: ["string", "string", "string"] },  // [name, type, ami]
+    startInstance: { params: ["string"] },  // [instanceId]
+    stopInstance: { params: ["string"] },  // [instanceId]
+    terminateInstance: { params: ["string"] }, // [instanceId]
+    resizeInstance: { params: ["string", "string"] }, // [instanceId, newType]
     listInstances: { params: [] },
-    checkInstanceStatus: { params: ["string"] },
+    checkInstanceStatus: { params: ["string"] }, // [instanceId]
 
     // Storage Management
     createStorage: { params: ["string", "number"] },
