@@ -540,82 +540,100 @@ listFiles: {
     /**
      * Networking Functions
      */
-    createVPC: {
-        params: ["string", "string"],
-        execute: async (vpcName, cidrBlock = '10.0.0.0/16') => {
+    createNetwork: {
+        params: ["string", "string"], // vpcName, cidrBlock
+        execute: async (vpcName, cidrBlock = "10.0.0.0/16") => {
             try {
-                const vpcData = await ec2.createVpc({ CidrBlock: cidrBlock }).promise();
-                const vpcId = vpcData.Vpc.VpcId;
+                const vpcParams = {
+                    CidrBlock: cidrBlock.replace(/"/g, ''),
+                    TagSpecifications: [{
+                        ResourceType: 'vpc',
+                        Tags: [{ Key: 'Name', Value: vpcName.replace(/"/g, '') }]
+                    }]
+                };
                 
-                await ec2.createTags({
-                    Resources: [vpcId],
-                    Tags: [{ Key: 'Name', Value: vpcName }]
+                const data = await ec2.createVpc(vpcParams).promise();
+                return {
+                    success: true,
+                    vpcId: data.Vpc.VpcId,
+                    cidrBlock: data.Vpc.CidrBlock,
+                    state: data.Vpc.State
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message,
+                    code: error.code
+                };
+            }
+        }
+    },
+
+    assignIp: {
+        params: ["string", "string"], // instanceId, allocationName
+        execute: async (instanceId, allocationName) => {
+            try {
+                // 1. Allocate Elastic IP
+                const allocateData = await ec2.allocateAddress({
+                    Domain: 'vpc',
+                    TagSpecifications: [{
+                        ResourceType: 'elastic-ip',
+                        Tags: [{ Key: 'Name', Value: allocationName.replace(/"/g, '') }]
+                    }]
                 }).promise();
+    
+                // 2. Associate with instance
+                await ec2.associateAddress({
+                    InstanceId: instanceId.replace(/"/g, ''),
+                    AllocationId: allocateData.AllocationId
+                }).promise();
+    
+                return {
+                    success: true,
+                    publicIp: allocateData.PublicIp,
+                    allocationId: allocateData.AllocationId,
+                    instanceId: instanceId
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message,
+                    code: error.code
+                };
+            }
+        }
+    },
+
+    setFirewallRule: {
+        params: ["string", "string"], // securityGroupId, ruleDefinition
+        execute: async (securityGroupId, ruleDefinition) => {
+            try {
+                // Parse rule definition (format: "tcp:80:0.0.0.0/0")
+                const [protocol, port, cidr] = ruleDefinition.replace(/"/g, '').split(':');
                 
-                return {
-                    vpcId,
-                    cidrBlock,
-                    message: `VPC ${vpcName} created with CIDR ${cidrBlock}`
+                const params = {
+                    GroupId: securityGroupId.replace(/"/g, ''),
+                    IpPermissions: [{
+                        IpProtocol: protocol,
+                        FromPort: parseInt(port),
+                        ToPort: parseInt(port),
+                        IpRanges: [{ CidrIp: cidr }]
+                    }]
                 };
-            } catch (err) {
-                throw new Error(`AWS Error: ${err.message}`);
-            }
-        }
-    },
-
-    /**
-     * Database Functions
-     */
-    createDatabase: {
-        params: ["string", "string", "string", "number"],
-        execute: async (dbName, engine, instanceClass, storageGB) => {
-            const params = {
-                DBInstanceIdentifier: dbName,
-                Engine: engine,
-                DBInstanceClass: instanceClass,
-                AllocatedStorage: storageGB,
-                MasterUsername: process.env.DB_MASTER_USER || 'admin',
-                MasterUserPassword: process.env.DB_MASTER_PASSWORD || 'password',
-                BackupRetentionPeriod: 7,
-                MultiAZ: false,
-                PubliclyAccessible: true
-            };
-            
-            try {
-                const data = await rds.createDBInstance(params).promise();
+    
+                await ec2.authorizeSecurityGroupIngress(params).promise();
                 return {
-                    dbName,
-                    status: data.DBInstance.DBInstanceStatus,
-                    message: `Database ${dbName} is being created`
+                    success: true,
+                    securityGroupId,
+                    rule: `${protocol}:${port}:${cidr}`
                 };
-            } catch (err) {
-                throw new Error(`AWS Error: ${err.message}`);
-            }
-        }
-    },
-
-    /**
-     * Load Balancing Functions
-     */
-    createLoadBalancer: {
-        params: ["string", "array", "string"],
-        execute: async (name, subnetIds, scheme = 'internet-facing') => {
-            const params = {
-                Name: name,
-                Subnets: subnetIds,
-                Scheme: scheme,
-                Type: 'application'
-            };
-            
-            try {
-                const data = await elbv2.createLoadBalancer(params).promise();
+            } catch (error) {
                 return {
-                    arn: data.LoadBalancers[0].LoadBalancerArn,
-                    dnsName: data.LoadBalancers[0].DNSName,
-                    message: `Load balancer ${name} created`
+                    success: false,
+                    error: error.message,
+                    code: error.code,
+                    failedRule: ruleDefinition
                 };
-            } catch (err) {
-                throw new Error(`AWS Error: ${err.message}`);
             }
         }
     }

@@ -82,9 +82,9 @@ const functions = {
     listFiles: { params: ["string"] }, // bucketName
 
     // Networking
-    createNetwork: { params: ["string", "string"] },
-    assignIp: { params: ["string", "string"] },
-    setFirewallRule: { params: ["string", "string"] },
+    createNetwork: { params: ["string", "string"] },   // vpcName, cidrBlock
+    assignIp: { params: ["string", "string"] },   // instanceId, allocationName
+    setFirewallRule: { params: ["string", "string"] },  // securityGroupId, ruleDefinition
 };
 
 function factorial(n) {
