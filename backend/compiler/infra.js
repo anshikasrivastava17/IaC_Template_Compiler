@@ -223,33 +223,53 @@ const awsFunctions = {
 
     checkInstanceStatus: {
         execute: async (instanceId) => {
-            const data = await ec2.describeInstances({ InstanceIds: [instanceId] }).promise();
-            const instance = data.Reservations[0].Instances[0];
-            return {
-                instanceId,
-                state: instance.State.Name,
-                publicIp: instance.PublicIpAddress
-            };
+            try {
+                // Remove quotes if present
+                const cleanInstanceId = instanceId.replace(/"/g, '');
+                
+                // Validate instance ID format
+                if (!/^i-[a-z0-9]+$/.test(cleanInstanceId)) {
+                    throw new Error(`Invalid instance ID format: ${cleanInstanceId}`);
+                }
+    
+                const data = await ec2.describeInstances({ 
+                    InstanceIds: [cleanInstanceId] 
+                }).promise();
+    
+                // Check if instance exists
+                if (data.Reservations.length === 0 || data.Reservations[0].Instances.length === 0) {
+                    throw new Error(`Instance ${cleanInstanceId} not found`);
+                }
+    
+                const instance = data.Reservations[0].Instances[0];
+                
+                return {
+                    success: true,
+                    instanceId: cleanInstanceId,
+                    state: instance.State.Name,
+                    stateCode: instance.State.Code,
+                    publicIp: instance.PublicIpAddress || 'N/A',
+                    privateIp: instance.PrivateIpAddress || 'N/A',
+                    instanceType: instance.InstanceType,
+                    launchTime: instance.LaunchTime,
+                    tags: instance.Tags || [],
+                    availabilityZone: instance.Placement.AvailabilityZone
+                };
+                
+            } catch (error) {
+                return {
+                    success: false,
+                    instanceId: instanceId.replace(/"/g, ''),
+                    error: error.message,
+                    code: error.code || 'UnknownError'
+                };
+            }
         }
     },
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
 
     
     /**
