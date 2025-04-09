@@ -161,33 +161,33 @@ const Documentation = () => {
         {/* Compute Management */}
         <h3 className="text-lg font-semibold mt-4">Compute Management</h3>
         <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm space-y-2 text-black">
-          <code>function createInstance(name, type) - Creates a new compute instance<br /></code>
-          <code>function startInstance(name) - Starts an existing instance<br /></code>
-          <code>function stopInstance(name) - Stops a running instance<br /></code>
-          <code>function terminateInstance(name) - Permanently deletes an instance<br /></code>
-          <code>function resizeInstance(name, newType) - Changes instance type/size<br /></code>
+          <code>function createInstance(name, type, ami) - Creates a new compute instance<br /></code>
+          <code>function startInstance(instanceId) - Starts an existing instance<br /></code>
+          <code>function stopInstance(instanceId) - Stops a running instance<br /></code>
+          <code>function terminateInstance(instanceId) - Permanently deletes an instance<br /></code>
+          <code>function resizeInstance(instanceId, newType) - Changes instance type/size<br /></code>
           <code>function listInstances() - Lists all active instances<br /></code>
-          <code>function checkInstanceStatus(instanceName) - Checks instance status<br /></code>
+          <code>function checkInstanceStatus(instanceId) - Checks instance status<br /></code>
         </div>
 
         {/* Storage Management */}
         <h3 className="text-lg font-semibold mt-4">Storage Management</h3>
         <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm space-y-2 text-black">
-          <code>function createStorage(name, size) - Creates a new storage volume<br /></code>
-          <code>function attachStorage(instanceName, storageName) - Attaches storage to instance<br /></code>
-          <code>function detachStorage(instanceName, storageName) - Detaches storage from instance<br /></code>
-          <code>function createBucket(name, region) - Creates cloud storage bucket<br /></code>
-          <code>function deleteBucket(name) - Deletes a storage bucket<br /></code>
-          <code>function uploadFile(bucketName, fileName, path) - Uploads file to bucket<br /></code>
+          <code>function createStorage(volumeType, size) - Creates a new storage volume<br /></code>
+          <code>function attachStorage(volumeId, instanceId) - Attaches storage to instance<br /></code>
+          <code>function detachStorage(volumeId, instanceId) - Detaches storage from instance<br /></code>
+          <code>function createBucket(bucketName, region) - Creates cloud storage bucket<br /></code>
+          <code>function deleteBucket(bucketName) - Deletes a storage bucket<br /></code>
+          <code>function deleteStorage(volumeType) - Deletes specified storage volume<br /></code>
           <code>function listFiles(bucketName) - Lists files in a bucket<br /></code>
         </div>
 
         {/* Networking */}
         <h3 className="text-lg font-semibold mt-4">Networking</h3>
         <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm space-y-2 text-black">
-          <code>function createNetwork(name, cidrBlock) - Creates virtual network<br /></code>
-          <code>function assignIp(instanceName, ipAddress) - Assigns static IP to instance<br /></code>
-          <code>function setFirewallRule(networkName, rule) - Configures firewall rules<br /></code>
+          <code>function createNetwork(VPCname, cidrBlock) - Creates virtual network<br /></code>
+          <code>function assignIp(instanceId, allocationName) - Assigns static IP to instance<br /></code>
+          <code>function setFirewallRule(securityGroupId, ruleDefinition) - Configures firewall rules<br /></code>
         </div>
       </section>
 
